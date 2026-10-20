@@ -101,7 +101,7 @@ function registerIpc() {
 
   handle('settings:get', () => ctx.settings.data);
   handle('settings:set', (patch) => {
-    const allowed = ['language', 'azureClientId', 'devMode', 'offlineName', 'autoUpdateClient', 'minimizeOnLaunch', 'activeProfile', 'activeAccount'];
+    const allowed = ['language', 'azureClientId', 'devMode', 'offlineName', 'autoUpdateClient', 'minimizeOnLaunch', 'activeProfile', 'activeAccount', 'showMicrosoftLogin'];
     for (const k of allowed) if (k in patch) ctx.settings.data[k] = patch[k];
     ctx.settings.save();
     return ctx.settings.data;

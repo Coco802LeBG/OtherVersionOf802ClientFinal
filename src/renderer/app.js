@@ -291,30 +291,37 @@ function renderSettings() {
   const cid = el('input', { type: 'text', value: s.azureClientId, placeholder: S.info.defaultClientId ? '(valeur par défaut du launcher)' : 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
     onchange: (e) => set({ azureClientId: e.target.value.trim() }) });
 
-  const accRows = S.accounts.map((a) => el('div', { class: 'row' },
+  // ---- Compte : la liste d'amis est le mode normal, Microsoft/Azure est replié ----
+  const friendSelect = el('select', { onchange: (e) => set({ offlineName: e.target.value, activeAccount: 'offline' }) },
+    el('option', { value: '', disabled: true, selected: !s.offlineName }, t('s_friend_pick')),
+    (S.info.friendsWhitelist || []).map((name) => el('option', { value: name, selected: name === s.offlineName }, name)));
+  const friendActive = s.activeAccount === 'offline' && s.offlineName;
+
+  const msAccRows = S.accounts.map((a) => el('div', { class: 'row' },
     el('label', { class: 'check' }, el('input', { type: 'radio', name: 'acc', checked: s.activeAccount === a.uuid, onchange: () => set({ activeAccount: a.uuid }) }), a.name),
     el('button', { class: 'btn small danger', onclick: async () => { await call('accounts:logout', a.uuid); await refreshAccounts(); render(); } }, t('logout'))));
-  if (s.devMode) accRows.push(el('label', { class: 'check' }, el('input', { type: 'radio', name: 'acc', checked: s.activeAccount === 'offline', onchange: () => set({ activeAccount: 'offline' }) }), t('s_friend_account') + ' : ' + (s.offlineName || '—')));
+
+  const advancedOpen = !!S.showMsAdvanced;
+  const advanced = advancedOpen ? el('div', { class: 'card stack', style: 'margin-top:14px' }, el('h2', {}, t('s_account')),
+    !S.info.canEncrypt ? el('div', { class: 'notice warn small' }, t('s_encrypt_warn')) : null,
+    ...msAccRows,
+    el('div', {}, el('button', { class: 'btn primary', onclick: login }, t('login_ms'))),
+    S.info.defaultClientId ? null : el('label', { class: 'field' }, t('s_clientid'), cid, el('span', { class: 'hint' }, t('s_clientid_hint')))
+  ) : null;
 
   const updText = { idle: '', dev: t('upd_dev'), checking: t('upd_checking'), none: t('upd_none'), available: t('upd_available') + ' ' + (S.updater.version || ''), downloading: t('upd_downloading') + ' ' + (S.updater.percent || 0) + '%', ready: t('upd_ready'), error: S.updater.message || '' }[S.updater.status] || '';
 
   mount(el('h1', {}, t('nav_settings')), el('p', { class: 'sub' }, ''),
     el('div', { class: 'stack', style: 'max-width:720px' },
       el('div', { class: 'card stack' }, el('h2', {}, t('s_account')),
-        !S.info.canEncrypt ? el('div', { class: 'notice warn small' }, t('s_encrypt_warn')) : null,
-        ...accRows,
-        el('div', {}, el('button', { class: 'btn primary', onclick: login }, t('login_ms'))),
-        (S.info.defaultClientId && !s.devMode) ? null : el('label', { class: 'field' }, t('s_clientid'), cid, el('span', { class: 'hint' }, t('s_clientid_hint')))),
+        el('label', { class: 'field' }, t('s_offline_name'), friendSelect, el('span', { class: 'hint' }, t('s_friend_hint'))),
+        friendActive ? el('div', { class: 'badge ok' }, t('s_friend_account') + ' : ' + s.offlineName) : null,
+        el('div', {}, el('button', { class: 'btn small', onclick: () => { S.showMsAdvanced = !advancedOpen; render(); } }, t('s_ms_advanced'))),
+        advanced),
       el('div', { class: 'card stack' },
         el('label', { class: 'field' }, t('s_language'), lang),
         el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: s.autoUpdateClient, onchange: (e) => set({ autoUpdateClient: e.target.checked }) }), t('s_auto_client')),
-        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: s.minimizeOnLaunch, onchange: (e) => set({ minimizeOnLaunch: e.target.checked }) }), t('s_minimize')),
-        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: s.devMode, onchange: (e) => set({ devMode: e.target.checked }) }), el('span', {}, t('s_dev'), el('div', { class: 'small muted' }, t('s_dev_hint')))),
-        s.devMode ? el('label', { class: 'field' }, t('s_offline_name'),
-          el('select', { onchange: (e) => set({ offlineName: e.target.value }) },
-            el('option', { value: '', disabled: true, selected: !s.offlineName }, t('s_friend_pick')),
-            (S.info.friendsWhitelist || []).map((name) => el('option', { value: name, selected: name === s.offlineName }, name))),
-          el('span', { class: 'hint' }, t('s_friend_hint'))) : null),
+        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: s.minimizeOnLaunch, onchange: (e) => set({ minimizeOnLaunch: e.target.checked }) }), t('s_minimize'))),
       el('div', { class: 'card stack' }, el('h2', {}, t('s_launcher') + ' v' + S.info.version),
         el('div', { class: 'row' }, el('button', { class: 'btn', onclick: () => call('updater:check') }, t('s_check_update')), el('span', { class: 'muted' }, updText),
           S.updater.status === 'ready' ? el('button', { class: 'btn small primary', onclick: () => call('updater:install') }, t('upd_restart')) : null),

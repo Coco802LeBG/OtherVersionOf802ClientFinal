@@ -23,12 +23,13 @@ class JsonStore {
 const DEFAULT_SETTINGS = {
   language: 'fr',
   azureClientId: '',
-  devMode: false,
-  offlineName: 'Player',
+  devMode: true,
+  offlineName: '',
   autoUpdateClient: true,
   minimizeOnLaunch: true,
   activeProfile: 'default',
-  activeAccount: null
+  activeAccount: 'offline',
+  showMicrosoftLogin: false
 };
 
 function defaultProfile() {

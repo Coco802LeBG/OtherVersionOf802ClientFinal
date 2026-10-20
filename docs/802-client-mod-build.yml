@@ -1,0 +1,52 @@
+# ============================================================
+#  À COLLER DANS LE DÉPÔT DU MOD (802-client), à la place de :
+#  .github/workflows/build.yml
+#
+#  Ce que ça change : quand tu crées un tag (ex. v1.0.0), GitHub
+#  compile le mod et publie une Release avec :
+#    - 802-client-1.0.0.jar
+#    - 802-client-1.0.0.jar.sha256   (empreinte vérifiée par le launcher)
+#  Le launcher télécharge ce jar quand le joueur clique sur JOUER.
+# ============================================================
+name: Build
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - run: chmod +x gradlew && ./gradlew build
+
+      - name: Préparer le jar et son hash
+        run: |
+          mkdir -p release
+          JAR=$(ls build/libs/802-client-*.jar | grep -v -e sources -e dev | head -n 1)
+          cp "$JAR" release/
+          cd release
+          sha256sum "$(basename "$JAR")" > "$(basename "$JAR").sha256"
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 802-client
+          path: release/*
+
+      - name: Publier la Release (seulement sur un tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            gh release upload "${{ github.ref_name }}" release/* --clobber
+          else
+            gh release create "${{ github.ref_name }}" release/* --title "802 Client ${{ github.ref_name }}" --generate-notes
+          fi

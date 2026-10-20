@@ -1,0 +1,73 @@
+{
+  "name": "802-client-launcher",
+  "productName": "802 Client",
+  "version": "1.0.0",
+  "description": "Launcher officiel de 802 Client (Minecraft Fabric 1.21.11)",
+  "author": {
+    "name": "Coco802",
+    "email": "coco802@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.coco802.launcher",
+    "productName": "802 Client",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "802-Client-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "artifactName": "802-Client-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games",
+      "artifactName": "802-Client-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Coco802",
+        "repo": "802-launcher",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

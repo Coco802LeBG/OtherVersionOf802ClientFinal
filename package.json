@@ -64,8 +64,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Coco802",
-        "repo": "802-launcher",
+        "owner": "Coco802LeBG",
+        "repo": "OtherVersionOf802ClientFinal",
         "releaseType": "release"
       }
     ]

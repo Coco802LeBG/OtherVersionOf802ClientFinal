@@ -17,7 +17,7 @@ class JsonStore {
         ? raw
         : { ...this.data, ...raw };
     } catch (_) {
-      // Fichier inexistant ou première ouverture.
+      // Configuration créée au premier lancement.
     }
   }
 
@@ -38,19 +38,13 @@ class JsonStore {
 
 const DEFAULT_SETTINGS = {
   language: 'fr',
-
-  // À configurer avec l'identifiant de ta propre application Microsoft.
   azureClientId: '',
-
   devMode: false,
   offlineName: '',
-
   autoUpdateClient: true,
   minimizeOnLaunch: true,
-
   activeProfile: 'default',
   activeAccount: null,
-
   showMicrosoftLogin: true
 };
 
@@ -59,18 +53,14 @@ function defaultProfile() {
     id: 'default',
     name: '802 Client',
     mcVersion: '1.21.11',
-
     ramMax: 4096,
     ramMin: 1024,
-
     jvmArgs:
       '-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200',
-
     javaPath: '',
     width: 1280,
     height: 720,
     fullscreen: false,
-
     gameDir: '',
     install802: true,
     client: null,

@@ -139,19 +139,68 @@ function registerIpc() {
   // Comptes
   handle('accounts:list', () => ctx.accounts.list());
   let loginAbort = null;
-  handle('accounts:login', async () => {
-    const clientId = ctx.settings.data.azureClientId || config.AZURE_CLIENT_ID;
-    loginAbort = new AbortController();
-    const acc = await auth.login(clientId, (info) => {
-      send('auth-code', info);
-      if (info.url && info.url.startsWith('https://')) shell.openExternal(info.url);
-    }, loginAbort.signal);
+ 
+handle('accounts:login', async () => {
+  if (loginAbort) {
+    throw new Error('Une connexion est déjà en cours.');
+  }
+
+  const clientId =
+    ctx.settings.data.azureClientId ||
+    config.AZURE_CLIENT_ID;
+
+  if (!clientId) {
+    throw new Error('Client ID Microsoft manquant.');
+  }
+
+  const controller = new AbortController();
+  loginAbort = controller;
+
+  try {
+    const acc = await auth.login(
+      clientId,
+      (info) => {
+        send('auth-code', info);
+
+        if (info.url && info.url.startsWith('https://')) {
+          shell.openExternal(info.url).catch(() => {});
+        }
+      },
+      controller.signal
+    );
+
+    if (
+      !acc ||
+      acc.type !== 'msa' ||
+      !acc.uuid ||
+      !acc.name ||
+      !acc.refreshToken ||
+      !acc.mcToken
+    ) {
+      throw new Error('Le profil Minecraft reçu est invalide.');
+    }
+
+    // Enregistre le compte via le système sécurisé existant.
     const saved = ctx.accounts.persist(acc);
+
+    // Sélectionne automatiquement ce compte au prochain lancement.
     ctx.settings.data.activeAccount = acc.uuid;
     ctx.settings.save();
-    util.log(`Connecté en tant que ${acc.name}.`);
-    return { name: acc.name, uuid: acc.uuid, saved };
-  });
+
+    util.log(`Compte enregistré : ${acc.name} (${acc.uuid}).`);
+
+    return {
+      name: acc.name,
+      uuid: acc.uuid,
+      saved
+    };
+  } finally {
+    if (loginAbort === controller) {
+      loginAbort = null;
+    }
+  }
+});
+
   handle('accounts:cancelLogin', () => { if (loginAbort) loginAbort.abort(); });
   handle('accounts:logout', (uuid) => {
     ctx.accounts.remove(uuid);

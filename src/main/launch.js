@@ -16,22 +16,72 @@ function gameDirOf(paths, profile) {
   return profile.gameDir ? profile.gameDir : path.join(paths.instances, profile.id);
 }
 
+
 async function getAccount(ctx) {
   const s = ctx.settings.data;
+
   if (s.devMode && s.activeAccount === 'offline') {
     const name = (s.offlineName || '').trim();
-    const allowed = config.FRIENDS_WHITELIST.some((f) => f.toLowerCase() === name.toLowerCase());
-    if (!allowed) throw new Error(`« ${name || '(vide)'} » n'est pas dans la liste des amis autorisés. Demande à Coco802 de t'y ajouter.`);
-    log('⚠ Compte de test (liste d\'amis) : impossible de rejoindre les serveurs officiels.', 'warn');
+
+    const allowed = config.FRIENDS_WHITELIST.some(
+      (f) => f.toLowerCase() === name.toLowerCase()
+    );
+
+    if (!allowed) {
+      throw new Error(
+        `« ${name || '(vide)'} » n'est pas dans la liste des amis autorisés.`
+      );
+    }
+
+    log(
+      "⚠ Compte hors ligne : impossible de rejoindre les serveurs officiels.",
+      'warn'
+    );
+
     return auth.offlineAccount(name);
   }
-  let acc = s.activeAccount ? ctx.accounts.load(s.activeAccount) : null;
-  if (!acc) throw new Error("Aucun compte connecté. Va dans Réglages > Compte et connecte ton compte Microsoft.");
+
+  let acc = s.activeAccount
+    ? ctx.accounts.load(s.activeAccount)
+    : null;
+
+  if (!acc) {
+    throw new Error(
+      'Aucun compte connecté. Va dans Réglages > Compte et connecte ton compte Microsoft.'
+    );
+  }
+
   if (acc.type !== 'msa') {
-  throw new Error(
-    'Ce compte n’est pas un compte Microsoft authentifié. ' +
-    'Connecte un compte Microsoft possédant Minecraft Java.'
-  );
+    throw new Error(
+      'Ce compte n’est pas un compte Microsoft valide. Reconnecte ton compte.'
+    );
+  }
+
+  if (!acc.refreshToken || !acc.uuid || !acc.name) {
+    throw new Error(
+      'La session Microsoft est incomplète. Reconnecte ton compte.'
+    );
+  }
+
+  if (!acc.mcExpires || acc.mcExpires < Date.now()) {
+    log('Renouvellement de la session Minecraft…');
+
+    acc = await auth.refresh(
+      s.azureClientId || config.AZURE_CLIENT_ID,
+      acc
+    );
+
+    ctx.accounts.persist(acc);
+  }
+
+  if (!acc.mcToken) {
+    throw new Error(
+      'Jeton Minecraft manquant. Reconnecte ton compte Microsoft.'
+    );
+  }
+
+  addSecret(acc.mcToken);
+  return acc;
 }
 
 if (!acc.mcExpires || acc.mcExpires < Date.now()) {

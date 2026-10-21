@@ -27,11 +27,29 @@ async function getAccount(ctx) {
   }
   let acc = s.activeAccount ? ctx.accounts.load(s.activeAccount) : null;
   if (!acc) throw new Error("Aucun compte connecté. Va dans Réglages > Compte et connecte ton compte Microsoft.");
-  if (acc.mcExpires < Date.now()) {
-    log('Renouvellement de la session Minecraft…');
-    acc = await auth.refresh(s.azureClientId || config.AZURE_CLIENT_ID, acc);
-    ctx.accounts.persist(acc);
+  if (acc.type !== 'msa') {
+  throw new Error(
+    'Ce compte n’est pas un compte Microsoft authentifié. ' +
+    'Connecte un compte Microsoft possédant Minecraft Java.'
+  );
+}
+
+if (!acc.mcExpires || acc.mcExpires < Date.now()) {
+  log('Renouvellement de la session Minecraft…');
+
+  acc = await auth.refresh(
+    s.azureClientId || config.AZURE_CLIENT_ID,
+    acc
+  );
+
+  if (!acc || acc.type !== 'msa' || !acc.uuid || !acc.name) {
+    throw new Error(
+      'Le renouvellement n’a pas retourné de profil Minecraft valide.'
+    );
   }
+
+  ctx.accounts.persist(acc);
+}
   addSecret(acc.mcToken);
   return acc;
 }
